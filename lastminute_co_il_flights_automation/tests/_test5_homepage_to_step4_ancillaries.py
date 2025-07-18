@@ -8,81 +8,59 @@ from automation.lastminute_automation.lastminute_co_il_flights_automation.pages.
 from automation.lastminute_automation.lastminute_co_il_flights_automation.pages.page4_contact_page import ContactPage
 from automation.lastminute_automation.lastminute_co_il_flights_automation.pages.page5_general_services_page import \
     AncillariesPage
+from automation.lastminute_automation.lastminute_co_il_flights_automation.tests.base_test import BaseTest
 
 
+class TestFlightBooking(BaseTest):
 
-def test_co_il_flight_homepage_to_step4_ancillaries_page():
+    def test_home_to_step4_ancillaries_page(self, page):
 
-    p = sync_playwright().start()
+        contact_first_name = "Test"
+        contact_last_name = "Prod"
+        email = "natan@lastminute.co.il"
+        confirmation_email = "natan@lastminute.co.il"
+        phone_number = "0527491280"
+        birthday_date = "23111999"
+        passenger_first = "Natan"
+        passenger_last = "Shor"
+        passenger_full_name = f"{passenger_first} {passenger_last}"
+        passenger_gender = "זכר"
 
-    browser = p.chromium.launch(headless=False,
+        page.goto("https://www.lastminute.co.il/")
 
+        # 2. Home Page
+        self.home = HomePage(page)
+        self.home.safe_landing()
+        self.home.close_cookies_message()
+        self.home.click_flight_tab()
+        self.home.set_trip_direction()
+        self.home.set_passenger_type_and_count()
+        self.home.set_flight_class()
+        self.home.choose_outbound_flight("תל אביב")
+        self.home.choose_inbound_flight("אתונה")
+        self.home.set_flight_dates()
 
+        # 3. Search Page
+        self.search = SearchResultsPage(page)
+        self.search.safe_load_search_results()
+        self.search.retry_search_with_alternative_dates()
+        self.search.check_elal_airline_filter()
+        new_tab = self.search.choose_elal_flight()
 
-        args=[
-            "--start-maximized",
-            "--disable-web-security",
-            "--allow-running-insecure-content",
-            # merged cookie + isolation overrides:
-            "--disable-features=IsolateOrigins,SitePerProcess,SameSiteByDefaultCookies,BlockThirdPartyCookies",
-            "--disable-blink-features=AutomationControlled"
-        ],
-        # drop Playwright’s own “enable-automation” switch
-        ignore_default_args=["--enable-automation"]
-    )
+        # 4. Flexi Page
+        self.flexi = FlexiPage(new_tab)
+        self.flexi.wait_for_page_to_load()
+        self.flexi.choose_flexi_ticket()
 
-    context = browser.new_context(
-        no_viewport=True,
-        java_script_enabled=True,
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " \
-                   "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",)
+        # 5. Contact Page
+        self.contact = ContactPage(new_tab)
+        self.contact.wait_for_contact_page_to_load()
+        self.contact.fill_contact_info(contact_first_name, contact_last_name, email, confirmation_email, phone_number)
+        self.contact.fill_passenger_info(passenger_first, passenger_last, birthday_date)
+        self.contact.add_outbound_baggage()
+        self.contact.add_inbound_baggage()
+        self.contact.continue_to_next_page_with_recovery(contact_first_name, contact_last_name, passenger_first, passenger_last, email, confirmation_email, phone_number, birthday_date)
 
-    context.add_init_script("""
-      Object.defineProperty(navigator, 'webdriver', {
-        get: () => undefined
-      });
-    """)
-
-    page = context.new_page()
-
-    page.goto("https://www.lastminute.co.il/")
-
-
-    contact_first_name = "Test"
-    contact_last_name = "Prod"
-    email = "natan@lastminute.co.il"
-    confirmation_email = "natan@lastminute.co.il"
-    phone_number = "0527491280"
-    birthday_date = "23111999"
-    passenger_first = "Natan"
-    passenger_last = "Shor"
-    passenger_full_name = f"{passenger_first} {passenger_last}"
-    passenger_gender = "זכר"
-
-
-    home_page = HomePage(page)
-    home_page.close_cookies_message()
-    home_page.click_flight_tab()
-    home_page.set_trip_direction()
-    home_page.set_passenger_type_and_count()
-    home_page.set_flight_class()
-    home_page.choose_outbound_flight("תל אביב")
-    home_page.choose_inbound_flight("אתונה")
-    home_page.set_flight_dates()
-    search_results_page = SearchResultsPage(page)
-    search_results_page.safe_load_search_results()
-    search_results_page.retry_search_with_alternative_dates()
-    search_results_page.check_elal_airline_filter()
-    flexi_page_object = search_results_page.choose_elal_flight()
-    flexi_page = FlexiPage(flexi_page_object)
-    flexi_page.wait_for_page_to_load()
-    flexi_page.choose_flexi_ticket()
-    contact_page = ContactPage(flexi_page_object)
-    contact_page.wait_for_contact_page_to_load()
-    contact_page.fill_contact_info(contact_first_name, contact_last_name, email, confirmation_email, phone_number)
-    contact_page.fill_passenger_info(passenger_first, passenger_last, birthday_date)
-    contact_page.add_outbound_baggage()
-    contact_page.add_inbound_baggage()
-    contact_page.continue_to_next_page_with_recovery(contact_first_name, contact_last_name, passenger_first, passenger_last, email, confirmation_email, phone_number, birthday_date)
-    ancillaries_page = AncillariesPage(flexi_page_object)
-    ancillaries_page.choose_ancillaries()
+        # 6. Ancillaries
+        ancillaries_page = AncillariesPage(new_tab)
+        ancillaries_page.choose_ancillaries()

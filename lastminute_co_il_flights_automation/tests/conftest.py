@@ -7,14 +7,15 @@ def browser():
     browser = playwright.chromium.launch(
         headless=False,
         args=[
-            "--start-maximized",
-            "--disable-web-security",
-            "--allow-running-insecure-content",
-            "--disable-features=IsolateOrigins,SitePerProcess,SameSiteByDefaultCookies,BlockThirdPartyCookies",
-            "--disable-blink-features=AutomationControlled"
+            "--start-maximized",  # לפתוח במסך מלא
+            "--disable-web-security",  # לבטל מגבלות אבטחה (למניעת חסימות)
+            "--allow-running-insecure-content",  # לאפשר תוכן לא מאובטח
+            "--disable-features=IsolateOrigins,...",  # לבטל פיצ'רים שמקשים על אוטומציה
+            "--disable-blink-features=AutomationControlled"  # להסוות שאנחנו בוט
         ],
         ignore_default_args=["--enable-automation"]
     )
+
     yield browser
     browser.close()
     playwright.stop()
@@ -24,6 +25,5 @@ def page(browser):
     context = browser.new_context(no_viewport=True)
     context.add_init_script("Object.defineProperty(navigator, 'webdriver', { get: () => undefined });")
     page = context.new_page()
-    page.goto("https://www.lastminute.co.il/")
     yield page
     context.close()

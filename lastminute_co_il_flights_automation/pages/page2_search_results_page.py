@@ -8,18 +8,20 @@ class SearchResultsPage(BasePage):
     def __init__(self, page: Page):
         super().__init__(page)
 
-    __FLIGHT_CARD_LIST = ".results-page-body"
-    __SEARCH_RESULTS_ELEMENT = '.search-results-txt [key="Filter.SearchResults"]'
-    __ELAL_FILTER_CHECK = '.right-section [value="LY"]'
-    __AVAILABLE_FLIGHTS_SEGMENTS = "app-flight-card .card-container"
-    __SEGMENT_OUTBOUND_FLIGHT_TEXT = ".flight-row:nth-child(1) .airline-box-name"
-    __SEGMENT_INBOUND_FLIGHT_TEXT = ".flight-row:nth-child(2) .airline-box-name"
-    __ORDER_FLIGHT_BTN = "app-flight-card-price-box .primary-btn"
-    __CHOOSE_FLIGHT_SEARCH_RESULTS_BTN = "app-flight-search-summary .search-summary-wrapper > .search-summary"
-    __DATE_PICKER = "app-datepicker .picker-container"
-    __NEXT_MONTH_BTN = ".container__months .month-item:nth-child(2) .button-next-month"
-    __FIND_ME_FLIGHTS_BTN = ".search-and-add-btn .primary-btn"
-    __MAX_WAIT_FOR_RESULTS = 45000  # ממתין עד 45 שניות לתוצאות החיפוש
+    FLIGHT_CARD_LIST = ".results-page-body"
+    SEARCH_RESULTS_VERIFY_ELEMENT = '.search-results-txt [key="Filter.SearchResults"]'
+    NEW_SEARCH_RESULT_PAGE_ELEMENT = "app-flight-search-summary .search-summary"
+    NEW_SEARCH_RESULT_DATE_PICKER = "app-datepicker .label-input"
+    ELAL_FILTER_CHECK = '.right-section [value="LY"]'
+    AVAILABLE_FLIGHTS_SEGMENTS = "app-flight-card .card-container"
+    SEGMENT_OUTBOUND_FLIGHT_TEXT = ".flight-row:nth-child(1) .airline-box-name"
+    SEGMENT_INBOUND_FLIGHT_TEXT = ".flight-row:nth-child(2) .airline-box-name"
+    ORDER_FLIGHT_BTN = "app-flight-card-price-box .primary-btn"
+    CHOOSE_FLIGHT_SEARCH_RESULTS_BTN = "app-flight-search-summary .search-summary-wrapper > .search-summary"
+    DATE_PICKER = "app-datepicker .picker-container"
+    NEXT_MONTH_BTN = ".container__months .month-item:nth-child(2) .button-next-month"
+    FIND_ME_FLIGHTS_BTN = ".search-and-add-btn .primary-btn"
+    MAX_WAIT_FOR_RESULTS = 45000  # ממתין עד 45 שניות לתוצאות החיפוש
 
     def safe_load_search_results(self):
         """
@@ -27,7 +29,7 @@ class SearchResultsPage(BasePage):
         If not, retries with alternative dates.
         """
         try:
-            search_result_element = self._page.locator(self.__SEARCH_RESULTS_ELEMENT)
+            search_result_element = self._page.locator(self.SEARCH_RESULTS_VERIFY_ELEMENT)
             search_result_element.wait_for(state="visible", timeout=30000)
             print("✅ Search results page loaded successfully!")
         except TimeoutError:
@@ -42,27 +44,28 @@ class SearchResultsPage(BasePage):
 
         # מוודאים אם תוצאות החיפוש הגיעו בכל זאת
         try:
-            search_result_element = self._page.locator(self.__SEARCH_RESULTS_ELEMENT)
-            search_result_element.wait_for(state="visible", timeout=self.__MAX_WAIT_FOR_RESULTS)
+            search_result_element = self._page.locator(self.SEARCH_RESULTS_VERIFY_ELEMENT)
+            search_result_element.wait_for(state="visible", timeout=self.MAX_WAIT_FOR_RESULTS)
             print("✅ The search result page was loaded successfully!")
             return
         except TimeoutError:
             print("❌ Search results not found, trying to select alternative dates.")
 
-        # לוחצים על כפתור בחירת טיסה
-        try:
-            self.click(self.__CHOOSE_FLIGHT_SEARCH_RESULTS_BTN)
-            print("🟢 Clicked on 'Choose flight' button.")
-        except Exception:
-            raise AssertionError("❌ Failed to click on 'Choose flight' button.")
+        #   לוחצים על כפתור בחירת טיסה מחדש
+
+        new_search_result_element = self._page.locator(self.NEW_SEARCH_RESULT_PAGE_ELEMENT)
+        new_search_result_element.wait_for(state="visible", timeout=10000)
+        assert new_search_result_element.is_visible(), "❌ The new search result element is not visible!"
+        self.click(self.NEW_SEARCH_RESULT_PAGE_ELEMENT)
+        print("✅ The new search result element is visible!")
+
 
         # מוודאים שבורר התאריכים נפתח
-        date_picker = self._page.locator(self.__DATE_PICKER)
-        try:
-            date_picker.wait_for(state="visible", timeout=7000)
-            print("📅 Date picker opened.")
-        except TimeoutError:
-            raise AssertionError("❌ Date picker did not open!")
+        new_date_picker = self._page.locator(self.DATE_PICKER)
+        new_date_picker.wait_for(state="visible", timeout=10000)
+        assert new_date_picker.is_visible(), "❌ The new date picker is not visible!"
+        self.click(new_date_picker)
+        print("✅ Date picker opened.")
 
         # משתנים לזכירת התאריכים שנבחרו
         self._selected_outbound_date = None
@@ -96,7 +99,7 @@ class SearchResultsPage(BasePage):
             if try_select_dates(month_index=i):
                 break
             try:
-                next_btn = self._page.locator(self.__NEXT_MONTH_BTN)
+                next_btn = self._page.locator(self.NEXT_MONTH_BTN)
                 next_btn.wait_for(state="visible", timeout=3000)
                 self.click(next_btn)
                 print(f"➡️ Clicked on 'Next Month' ({i + 1}/5)")
@@ -111,13 +114,13 @@ class SearchResultsPage(BasePage):
 
         # נלחץ על "מצא לי טיסות"
         try:
-            self.click(self.__FIND_ME_FLIGHTS_BTN)
+            self.click(self.FIND_ME_FLIGHTS_BTN)
             print("🔄 Retrying search with selected dates...")
         except Exception:
             raise AssertionError("❌ Failed to click on 'Find me flights' button.")
 
     def check_elal_airline_filter(self):
-        elal_checkbox = self._page.locator(self.__ELAL_FILTER_CHECK)
+        elal_checkbox = self._page.locator(self.ELAL_FILTER_CHECK)
         assert elal_checkbox.is_visible(), "❌ El Al filter checkbox is not visible on the page!"
 
         self.click(elal_checkbox)
@@ -128,21 +131,21 @@ class SearchResultsPage(BasePage):
         print("🌐 Current URL:", self._page.url)
         print("✈️ Choosing El Al flight...")
 
-        flight_cards_list = self._page.locator(self.__FLIGHT_CARD_LIST)
+        flight_cards_list = self._page.locator(self.FLIGHT_CARD_LIST)
         flight_cards_list.wait_for(state="visible", timeout=10000)
         assert flight_cards_list.is_visible(), "❌ Flight search results are not visible!"
         print("✅ Flight search results are visible.")
 
-        available_flights_segments = self._page.locator(self.__AVAILABLE_FLIGHTS_SEGMENTS)
+        available_flights_segments = self._page.locator(self.AVAILABLE_FLIGHTS_SEGMENTS)
         count = available_flights_segments.count()
         for i in range(count):
             segment = available_flights_segments.nth(i)
 
-            elal_outbound_flight_text = segment.locator(self.__SEGMENT_OUTBOUND_FLIGHT_TEXT).first
+            elal_outbound_flight_text = segment.locator(self.SEGMENT_OUTBOUND_FLIGHT_TEXT).first
             elal_outbound_flight_text.wait_for(state="visible", timeout=10000)
             outbound_airline_name = elal_outbound_flight_text.inner_text().strip().lower()
 
-            elal_inbound_flight_text = segment.locator(self.__SEGMENT_INBOUND_FLIGHT_TEXT).first
+            elal_inbound_flight_text = segment.locator(self.SEGMENT_INBOUND_FLIGHT_TEXT).first
             elal_inbound_flight_text.wait_for(state="visible", timeout=10000)
             inbound_airline_name = elal_inbound_flight_text.inner_text().strip().lower()
 
@@ -157,7 +160,7 @@ class SearchResultsPage(BasePage):
                 print(f"❌ El Al inbound flight not found in flight #{i + 1}")
 
             if "el al" in outbound_airline_name and "el al" in inbound_airline_name:
-                order_flight_btn = segment.locator(self.__ORDER_FLIGHT_BTN)
+                order_flight_btn = segment.locator(self.ORDER_FLIGHT_BTN)
                 order_flight_btn.wait_for(state="attached", timeout=10000)
                 print("🟢 El Al round trip found! Booking now...")
 
